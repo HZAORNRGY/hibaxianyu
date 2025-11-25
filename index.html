@@ -3,29 +3,36 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>校园二手教材平台（简化版）</title>
+  <title>校园二手教材平台</title>
   <style>
     body { font-family: system-ui, -apple-system, Roboto; padding: 20px; max-width:900px; margin:auto; }
     h1 { margin-bottom: 0.2rem; }
     .card { border:1px solid #ddd; padding:12px; border-radius:8px; background:#fafafa; }
     input, select, button { font-size:14px; padding:8px; }
-    .list { margin-top:16px; display:grid; gap:10px; }
-    .item { display:flex; gap:12px; align-items:flex-start; border:1px solid #eee; padding:10px; border-radius:8px; }
-    .meta { flex:1; }
+    .grid { 
+      margin-top:16px; 
+      display:grid; 
+      gap:12px; 
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
+    }
+    .item { 
+      border:1px solid #eee; 
+      padding:10px; 
+      border-radius:8px; 
+      background:#fff;
+    }
     .muted { color:#666; font-size:13px; }
-    .actions { display:flex; gap:8px; margin-top:8px; }
-    .sold { opacity:0.5; text-decoration:line-through; }
-    .search { margin-top:12px; display:flex; gap:8px; align-items:center; }
     .small { font-size:13px; padding:6px 8px; }
     label { display:block; margin-top:8px; font-weight:600; font-size:14px; }
   </style>
 </head>
 <body>
-  <h1>校园二手教材平台（简化版）</h1>
-  <p class="muted">演示版：数据保存于本地浏览器。</p>
+  <h1>校园二手教材平台</h1>
 
+  <!-- 搜索物品区域 -->
   <div class="card">
-    <strong>发布物品</strong>
+    <strong>搜索物品</strong>
+
     <label>标题<input id="title" placeholder="例如：高一数学必修1" /></label>
 
     <label>类别
@@ -37,7 +44,6 @@
       </select>
     </label>
 
-    <!-- 新增学科 -->
     <label>学科
       <select id="subject">
         <option>数学</option>
@@ -48,17 +54,83 @@
         <option>生物</option>
         <option>历史</option>
         <option>地理</option>
-        <option>政治</option>
-        <option>综合</option>
       </select>
     </label>
 
     <div style="margin-top:8px;">
-      <button id="postBtn">发布物品</button>
+      <button id="postBtn">搜索物品</button>
     </div>
   </div>
 
-  <div class="search">
-    <input id="q" placeholder="搜索标题/类别/学科" style="flex:1;" />
+  <!-- 网格陈列区 -->
+  <div class="grid" id="list"></div>
 
-    <!--
+<script>
+  const STORAGE_KEY = 'campus_market_items_v2';
+
+  function loadItems(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch(e){ return []; }
+  }
+  function saveItems(items){ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+
+  function renderList(){
+    const container = document.getElementById('list');
+    container.innerHTML = '';
+
+    let items = loadItems();
+    if(items.length === 0){
+      container.innerHTML = '<div class="muted">暂无物品</div>';
+      return;
+    }
+
+    items.sort((a,b)=>b.createdAt - a.createdAt);
+
+    items.forEach(it=>{
+      const el = document.createElement('div');
+      el.className = 'item';
+
+      el.innerHTML = `
+          <div><strong>${escapeHtml(it.title)}</strong></div>
+          <div class="muted">${escapeHtml(it.category)} ｜ ${escapeHtml(it.subject)}</div>
+          <div class="muted">发布：${new Date(it.createdAt).toLocaleString()}</div>
+      `;
+
+      container.appendChild(el);
+    });
+  }
+
+  document.getElementById('postBtn').onclick = ()=>{
+    const title = document.getElementById('title').value.trim();
+    if(!title){ alert('请输入标题'); return; }
+
+    const category = document.getElementById('category').value;
+    const subject = document.getElementById('subject').value;
+
+    const items = loadItems();
+    items.push({
+      id: 'i' + Date.now(),
+      title, category, subject,
+      createdAt: Date.now(),
+    });
+
+    saveItems(items);
+
+    // 清空输入
+    document.getElementById('title').value='';
+    renderList();
+  };
+
+  function escapeHtml(s){ 
+    return String(s||'').replace(/[&<>"]/g, c=>({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'
+    })[c]); 
+  }
+
+  renderList();
+</script>
+</body>
+</html>
+
